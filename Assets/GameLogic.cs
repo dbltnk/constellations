@@ -6,21 +6,31 @@ using System.Diagnostics;
 
 public class GameLogic : MonoBehaviour {
 
+    public int MinEmpty = 0;
+    public int MaxEmpty = 2;
+    public int MaxGreen = 10;
+    public int MaxBlue = 10;
     public int Iterations = 10000;
+    public int PrintEveryXFields = 100;
 
-    const uint empty = 0;
-    const uint green = 1;
-    const uint blue = 2;
-    const uint both = 3;
+    const uint EMPTY = 0;
+    const uint GREEN = 1;
+    const uint BLUE = 2;
+    const uint BOTH = 3;
 
     List<Card> Cards = new List<Card>();
 
-    int TotalFrequency;
+    float CardFreqTotal;
+
+    float PieceFreqEmpty;
+    float PieceFreqGreen;
+    float PieceFreqBlue;
+    float PieceFreqTotal;
 
     class Card {
         public string Name;
         public List<uint> Masks = new List<uint>();
-        public int Frequency;
+        public float Frequency;
 
         public Card(string name, int dX1, int dY1, uint firstPiece, int dX2, int dY2, uint secondPiece) {
             Name = name;
@@ -52,25 +62,25 @@ public class GameLogic : MonoBehaviour {
     }
 
     void Start () {
-        Cards.Add(new Card("blue-blue-horizontal", 0, 0, blue, 1, 0, blue));
-        Cards.Add(new Card("blue-blue-vertical", 0, 0, blue, 0, 1, blue));
-        Cards.Add(new Card("blue-blue-diagonal-up", 0, 0, blue, -1, -1, blue));
-        Cards.Add(new Card("blue-blue-diagonal-down", 0, 0, blue, 1, 1, blue));
+        Cards.Add(new Card("blue-blue-horizontal", 0, 0, BLUE, 1, 0, BLUE));
+        Cards.Add(new Card("blue-blue-vertical", 0, 0, BLUE, 0, 1, BLUE));
+        Cards.Add(new Card("blue-blue-diagonal-up", 0, 0, BLUE, -1, -1, BLUE));
+        Cards.Add(new Card("blue-blue-diagonal-down", 0, 0, BLUE, 1, 1, BLUE));
 
-        Cards.Add(new Card("green-green-horizontal", 0, 0, green, 1, 0, green));
-        Cards.Add(new Card("green-green-vertical", 0, 0, green, 0, 1, green));
-        Cards.Add(new Card("green-green-diagonal-up", 0, 0, green, -1, -1, green));
-        Cards.Add(new Card("green-green-diagonal-down", 0, 0, green, 1, 1, green));
+        Cards.Add(new Card("green-green-horizontal", 0, 0, GREEN, 1, 0, GREEN));
+        Cards.Add(new Card("green-green-vertical", 0, 0, GREEN, 0, 1, GREEN));
+        Cards.Add(new Card("green-green-diagonal-up", 0, 0, GREEN, -1, -1, GREEN));
+        Cards.Add(new Card("green-green-diagonal-down", 0, 0, GREEN, 1, 1, GREEN));
 
-        Cards.Add(new Card("green-blue-horizontal", 0, 0, green, 1, 0, blue));
-        Cards.Add(new Card("green-blue-vertical", 0, 0, green, 0, 1, blue));
-        Cards.Add(new Card("green-blue-diagonal-up", 0, 0, green, -1, -1, blue));
-        Cards.Add(new Card("green-blue-diagonal-down", 0, 0, green, 1, 1, blue));
+        Cards.Add(new Card("green-blue-horizontal", 0, 0, GREEN, 1, 0, BLUE));
+        Cards.Add(new Card("green-blue-vertical", 0, 0, GREEN, 0, 1, BLUE));
+        Cards.Add(new Card("green-blue-diagonal-up", 0, 0, GREEN, -1, -1, BLUE));
+        Cards.Add(new Card("green-blue-diagonal-down", 0, 0, GREEN, 1, 1, BLUE));
 
-        Cards.Add(new Card("blue-green-horizontal", 0, 0, blue, 1, 0, green));
-        Cards.Add(new Card("blue-green-vertical", 0, 0, blue, 0, 1, green));
-        Cards.Add(new Card("blue-green-diagonal-up", 0, 0, blue, -1, -1, green));
-        Cards.Add(new Card("blue-green-diagonal-down", 0, 0, blue, 1, 1, green));
+        Cards.Add(new Card("blue-green-horizontal", 0, 0, BLUE, 1, 0, GREEN));
+        Cards.Add(new Card("blue-green-vertical", 0, 0, BLUE, 0, 1, GREEN));
+        Cards.Add(new Card("blue-green-diagonal-up", 0, 0, BLUE, -1, -1, GREEN));
+        Cards.Add(new Card("blue-green-diagonal-down", 0, 0, BLUE, 1, 1, GREEN));
 
         foreach (Card card in Cards) print(card);
 
@@ -80,14 +90,14 @@ public class GameLogic : MonoBehaviour {
         stopwatch.Start();
 
         for (int i = 0; i < Iterations; ++i) {
-            uint randomField = CreateRandomField(0, 2, 10, 10);
-            //print(RenderField(randomField));
+            uint randomField = CreateRandomField(MinEmpty, MaxEmpty, MaxBlue, MaxGreen);
+            if (i % PrintEveryXFields == 0) print(RenderField(randomField));
 
             foreach (Card card in cards) {
                 foreach (uint mask in card.Masks) {
                     if ((randomField & mask) == mask) {
                         card.Frequency++;
-                        TotalFrequency++;
+                        CardFreqTotal++;
                     }
                 }
             }
@@ -96,10 +106,15 @@ public class GameLogic : MonoBehaviour {
         stopwatch.Stop();
         print(stopwatch.ElapsedMilliseconds);
 
-        Cards = Cards.OrderByDescending(t => t.Frequency).ToList();
+        print("### Field Frequencies ###");
+        print($"Empty: {PieceFreqEmpty} ({PieceFreqEmpty / PieceFreqTotal})");
+        print($"Green: {PieceFreqGreen} ({PieceFreqGreen / PieceFreqTotal})");
+        print($"Blue: {PieceFreqBlue} ({PieceFreqBlue / PieceFreqTotal})");
 
+        print("### Card Frequencies ###");
+        Cards = Cards.OrderByDescending(t => t.Frequency).ToList();
         foreach (Card card in Cards) {
-            float perc = (float)card.Frequency / (float)TotalFrequency * 100f;
+            float perc = card.Frequency / CardFreqTotal * 100f;
             print($"{card.Name}:{card.Frequency} ({perc.ToString("F2")}%)");
         }
     }
@@ -126,7 +141,7 @@ public class GameLogic : MonoBehaviour {
     }
 
     static uint GetPiece (uint field, int x, int y) {
-        return (field >> ShiftIndex(x, y)) & both;  // 3 = 2 bits (11)
+        return (field >> ShiftIndex(x, y)) & BOTH;  // 3 = 2 bits (11)
     }
 
     uint CreateRandomField (int minEmpties, int maxEmpties, int maxBlues, int maxGreens) {
@@ -135,20 +150,43 @@ public class GameLogic : MonoBehaviour {
         int blues = Random.Range(0, maxBlues + 1);
         int greens = Random.Range(0, maxGreens + 1);
         for (int i = 0; i < blues; ++i) {
-            pieces.Add(blue);
+            pieces.Add(BLUE);
         }
         for (int i = 0; i < greens; ++i) {
-            pieces.Add(green);
+            pieces.Add(GREEN);
         }
         for (int i = 0; i < empties; ++i) {
-            pieces.Add(empty);
+            pieces.Add(EMPTY);
         }
-        while (pieces.Count < 16) pieces.Add(empty);
+        while (pieces.Count < 16) {
+            // hacky way to make sure there are roughly as many blues as greens
+            if (Random.Range(0f, 1f) <= 0.5f) {
+                if (blues < maxBlues && blues <= greens) { pieces.Add(BLUE); blues++; }
+                else if (greens < maxGreens && greens <= blues) { pieces.Add(GREEN); greens++; }
+                else pieces.Add(EMPTY);
+            }
+            else {
+                if (greens < maxGreens && greens <= blues) { pieces.Add(GREEN); greens++; }
+                else if (blues < maxBlues && blues <= greens) { pieces.Add(BLUE); blues++; }
+                else pieces.Add(EMPTY);
+            }
+        }
         Shuffle(pieces);
         uint field = 0;
         for (int i = 0; i < 16; ++i) {
             field = field | (pieces[i] << (i * 2));
         }
+
+        for (int x = 0; x < 4; ++x) {
+            for (int y = 0; y < 4; ++y) {
+                uint piece = GetPiece(field, x, y);
+                if (piece == EMPTY) PieceFreqEmpty++;
+                if (piece == BLUE) PieceFreqBlue++;
+                if (piece == GREEN) PieceFreqGreen++;
+                PieceFreqTotal++;
+            }
+        }
+
         return field;
     }
 
